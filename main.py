@@ -42,6 +42,7 @@ from operations.basic import (
     grayscale_conversion,
     grayscale_gradient,
     binary_image,
+    rgb_adjustment,
 )
 
 
@@ -722,31 +723,44 @@ class PicLabApp(tk.Tk):
 
     def _show_operation_panel(self, operation, display_title=None):
         self._clear_control_content()
+
         if operation not in self.OPERATION_INFO:
             self._show_category_panel(self.active_category)
             return
 
         title, description = self.OPERATION_INFO[operation]
+
         if display_title:
             title = display_title
 
-        tk.Label(self.control_content, text=title, bg=C.WHITE,
-                 fg=C.TEXT, font=F(15, "bold")).pack(
-                     anchor="w", padx=20, pady=(20, 5)
-                 )
-        tk.Label(self.control_content, text=description, bg=C.WHITE,
-                 fg=C.MUTED, font=F(9), wraplength=330,
-                 justify="left").pack(anchor="w", padx=20, pady=(0, 16))
+        tk.Label(
+            self.control_content,
+            text=title,
+            bg=C.WHITE,
+            fg=C.TEXT,
+            font=F(15, "bold")
+        ).pack(anchor="w", padx=20, pady=(20, 5))
+
+        tk.Label(
+            self.control_content,
+            text=description,
+            bg=C.WHITE,
+            fg=C.MUTED,
+            font=F(9),
+            wraplength=330,
+            justify="left"
+        ).pack(anchor="w", padx=20, pady=(0, 16))
 
         if operation == "flipping":
             self._build_flipping_controls(self.control_content)
-            self.apply_button_operation = operation
+
         elif operation == "negative":
             self._add_info_card(
                 "Image Negative",
-                "Operasi ini membalik nilai intensitas setiap piksel menggunakan rumus 255 - nilai piksel. Tidak diperlukan parameter tambahan."
+                "Membalik nilai intensitas setiap piksel menggunakan "
+                "rumus 255 - nilai piksel."
             )
-            self.apply_button_operation = operation
+
         elif operation == "grayscale":
             self.grayscale_mode = tk.StringVar(value="conversion")
 
@@ -780,27 +794,39 @@ class PicLabApp(tk.Tk):
                 font=F(9)
             ).pack(anchor="w", padx=25)
 
-            self.apply_button_operation = operation
         elif operation == "binary":
             self._add_info_card(
                 "Binary Image",
                 "Menghasilkan citra biner berukuran 100 × 100 piksel. "
-                "Nilai intensitas 0 merepresentasikan hitam, sedangkan "
-                "255 merepresentasikan putih."
+                "Nilai 0 merepresentasikan hitam dan 255 merepresentasikan putih."
             )
 
-            self.apply_button_operation = operation
+        elif operation == "rgb":
+            self._add_info_card(
+                "RGB Adjustment",
+                "Atur intensitas kanal Red, Green, dan Blue pada gambar "
+                "yang diunggah. Rentang pengaturan setiap kanal adalah "
+                "-255 hingga +255."
+            )
+
+            self._build_rgb_controls(self.control_content)
+
         elif operation in ("add", "subtract", "multiply", "divide"):
-            default_value = "2" if operation in ("multiply", "divide") else "50"
+            default_value = (
+                "2" if operation in ("multiply", "divide") else "50"
+            )
+
             self.scalar_value.set(default_value)
             self._build_arithmetic_controls(self.control_content)
-            self.apply_button_operation = operation
+
         else:
             self._add_info_card(
                 "Fitur belum diimplementasikan",
-                "Struktur menu sudah tersedia. Algoritma untuk operasi ini akan diintegrasikan setelah menu selesai dirapikan."
+                "Struktur menu sudah tersedia. Algoritma untuk operasi "
+                "ini akan diintegrasikan setelah menu selesai dirapikan."
             )
-            self.apply_button_operation = operation
+
+        self.apply_button_operation = operation
 
     def _add_info_card(self, title, description):
         card = tk.Frame(self.control_content, bg=C.PANEL,
@@ -855,6 +881,83 @@ class PicLabApp(tk.Tk):
                  wraplength=300, justify="left").pack(
                      anchor="w", padx=14, pady=(6, 12)
                  )
+
+    def _build_rgb_controls(self, parent):
+        """Membuat kontrol pengaturan kanal RGB."""
+
+        self.rgb_red = tk.IntVar(value=0)
+        self.rgb_green = tk.IntVar(value=0)
+        self.rgb_blue = tk.IntVar(value=0)
+
+        channels = [
+            ("Red (R)", self.rgb_red, "#E74C3C"),
+            ("Green (G)", self.rgb_green, "#27AE60"),
+            ("Blue (B)", self.rgb_blue, "#3498DB"),
+        ]
+
+        self.rgb_value_labels = {}
+
+        for name, variable, color in channels:
+            frame = tk.Frame(parent, bg=C.WHITE)
+            frame.pack(fill="x", padx=20, pady=(8, 12))
+
+            tk.Label(
+                frame,
+                text=name,
+                bg=C.WHITE,
+                fg=C.TEXT,
+                font=F(10, "bold")
+            ).pack(anchor="w")
+
+            value_label = tk.Label(
+                frame,
+                text="0",
+                bg=C.WHITE,
+                fg=color,
+                font=F(9, "bold")
+            )
+            value_label.pack(anchor="e")
+
+            self.rgb_value_labels[name] = value_label
+
+            scale = tk.Scale(
+                frame,
+                from_=-255,
+                to=255,
+                orient="horizontal",
+                variable=variable,
+                bg=C.WHITE,
+                fg=C.TEXT,
+                troughcolor=C.BORDER,
+                activebackground=color,
+                highlightthickness=0,
+                showvalue=False,
+                resolution=1,
+                command=lambda value, label=value_label: label.config(
+                    text=f"{int(float(value)):+d}"
+                )
+            )
+            scale.pack(fill="x")
+
+        tk.Button(
+            parent,
+            text="Reset Nilai RGB",
+            command=lambda: self._reset_rgb_values(),
+            bg=C.WHITE,
+            fg=C.TEXT,
+            font=F(9),
+            relief="solid",
+            bd=1,
+            cursor="hand2"
+        ).pack(fill="x", padx=20, pady=(5, 10))
+
+    def _reset_rgb_values(self):
+        self.rgb_red.set(0)
+        self.rgb_green.set(0)
+        self.rgb_blue.set(0)
+
+        for label in self.rgb_value_labels.values():
+            label.config(text="0")
 
     def _build_arithmetic_controls(self, parent):
         """Membangun kontrol untuk operasi Arithmetic."""
@@ -1041,6 +1144,8 @@ class PicLabApp(tk.Tk):
             messagebox.showerror("Gagal membuka gambar", str(exc))
 
     def apply_operation(self):
+
+        # Binary merupakan operasi yang tidak membutuhkan gambar awal.
         if self.current_image is None and self.active_operation != "binary":
             messagebox.showwarning(
                 "Tidak ada gambar",
@@ -1049,10 +1154,17 @@ class PicLabApp(tk.Tk):
             return
 
         try:
-            if self.active_operation == "binary":
+
+            if self.active_operation == "rgb":
+                result = rgb_adjustment(
+                    self.current_image,
+                    red=self.rgb_red.get(),
+                    green=self.rgb_green.get(),
+                    blue=self.rgb_blue.get()
+                )
+
+            elif self.active_operation == "binary":
                 result = binary_image()
-            elif self.active_operation == "negative":
-                result = image_negative(self.current_image)
 
             elif self.active_operation == "negative":
                 result = image_negative(self.current_image)
@@ -1062,15 +1174,19 @@ class PicLabApp(tk.Tk):
 
                 if operation == "flip_horizontal":
                     result = flip_horizontal(self.current_image)
+
                 elif operation == "flip_vertical":
                     result = flip_vertical(self.current_image)
+
                 elif operation == "flip_both":
                     result = flip_both(self.current_image)
+
                 else:
                     messagebox.showwarning(
                         "Operasi tidak dikenal",
                         "Pilihan flipping tidak valid."
                     )
+                    return
 
             elif self.active_operation == "grayscale":
                 mode = self.grayscale_mode.get()
@@ -1081,7 +1197,12 @@ class PicLabApp(tk.Tk):
                 elif mode == "gradient":
                     result = grayscale_gradient(256, 256)
 
-            elif self.active_operation in ("add", "subtract", "multiply", "divide"):
+                else:
+                    return
+
+            elif self.active_operation in (
+                "add", "subtract", "multiply", "divide"
+            ):
                 operation = self.active_operation
                 mode = self.arithmetic_mode.get()
 
@@ -1108,8 +1229,10 @@ class PicLabApp(tk.Tk):
                         "multiply": multiply_scalar,
                         "divide": divide_scalar,
                     }
+
                     result = scalar_functions[operation](
-                        self.current_image, value
+                        self.current_image,
+                        value
                     )
 
                 else:
@@ -1126,8 +1249,10 @@ class PicLabApp(tk.Tk):
                         "multiply": multiply_images,
                         "divide": divide_images,
                     }
+
                     result = image_functions[operation](
-                        self.current_image, self.second_image
+                        self.current_image,
+                        self.second_image
                     )
 
             else:
@@ -1137,18 +1262,24 @@ class PicLabApp(tk.Tk):
                 )
                 return
 
+            # Konversi hasil operasi menjadi gambar RGB Pillow.
             result_image = Image.fromarray(
                 np.asarray(result, dtype=np.uint8)
             ).convert("RGB")
 
+            # Simpan kondisi sebelumnya untuk Undo.
             if self.current_image is not None:
                 self.history.append(self.current_image.copy())
 
+            # Perbarui gambar hasil.
             self.current_image = result_image
             self.panel_after.show_image(self.current_image)
 
         except Exception as exc:
-            messagebox.showerror("Gagal memproses gambar", str(exc))
+            messagebox.showerror(
+                "Gagal memproses gambar",
+                str(exc)
+            )
 
     def undo(self):
         if not self.history:

@@ -171,3 +171,34 @@ def binary_image(width=100, height=100):
     result[25:75, 25:75] = 255
 
     return result
+
+# ==============================
+# COLOURING - RGB ADJUSTMENT
+# ==============================
+
+def rgb_adjustment(image, red=0, green=0, blue=0):
+    """
+    Mengatur intensitas kanal Red, Green, dan Blue
+    pada citra RGB.
+
+    Parameter:
+        image : Citra Pillow RGB.
+        red   : Perubahan intensitas kanal merah (-255 hingga 255).
+        green : Perubahan intensitas kanal hijau (-255 hingga 255).
+        blue  : Perubahan intensitas kanal biru (-255 hingga 255).
+
+    Return:
+        Citra hasil dalam bentuk NumPy array.
+    """
+
+    image_array = np.asarray(image.convert("RGB"), dtype=np.int16)
+
+    result = image_array.copy()
+
+    result[:, :, 0] += int(red)
+    result[:, :, 1] += int(green)
+    result[:, :, 2] += int(blue)
+
+    result = np.clip(result, 0, 255).astype(np.uint8)
+
+    return result
