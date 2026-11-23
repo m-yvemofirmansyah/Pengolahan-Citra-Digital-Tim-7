@@ -13,7 +13,7 @@ Jalankan: python main.py
 """
 
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 import os
 
 import numpy as np
@@ -43,6 +43,19 @@ from operations.basic import (
     grayscale_gradient,
     binary_image,
     rgb_adjustment,
+    pseudo_color,
+    hsv_conversion,
+    boolean_not,
+    boolean_and,
+    boolean_or,
+    boolean_xor,
+    translation,
+    rotation,
+    zooming,
+    cropping,
+    thresholding,
+    convolution,
+    fourier_transform,
 )
 
 
@@ -181,9 +194,6 @@ class ImagePanel(tk.Frame):
 # APLIKASI UTAMA
 # ============================================================
 class PicLabApp(tk.Tk):
-    """Aplikasi utama PicLab - Seven."""
-
-    # Struktur menu diambil dari referensi yang diberikan pengguna.
     MENU_STRUCTURE = {
         "File": {
             "Open...": "file_open",
@@ -222,7 +232,6 @@ class PicLabApp(tk.Tk):
                 "HSV": "hsv",
                 "CMY": "cmy",
                 "YUV": "yuv",
-                "YIQ": "yiq",
                 "Pseudo": "pseudo",
             },
         },
@@ -304,7 +313,6 @@ class PicLabApp(tk.Tk):
         "hsv": ("HSV", "Mengolah citra menggunakan ruang warna HSV."),
         "cmy": ("CMY", "Mengolah citra menggunakan ruang warna CMY."),
         "yuv": ("YUV", "Mengolah citra menggunakan ruang warna YUV."),
-        "yiq": ("YIQ", "Mengolah citra menggunakan ruang warna YIQ."),
         "pseudo": ("Pseudo Colour", "Memberikan pewarnaan semu pada citra keabuan."),
         "brightness": ("Brightness", "Mengatur tingkat kecerahan citra."),
         "contrast": ("Contrast", "Mengatur perbedaan intensitas terang dan gelap."),
@@ -355,6 +363,9 @@ class PicLabApp(tk.Tk):
         self.second_image_path = None
         self.second_image_label = None
 
+        #boolean
+        self.boolean_image2 = None
+
         self.expanded_categories = {"Basic Ops"}
         self.active_category = "Basic Ops"
         self.active_operation = "flipping"
@@ -392,7 +403,7 @@ class PicLabApp(tk.Tk):
         FlatButton(header, "↶", self.undo, padx=10, pady=8,
                    font=F(12, "bold")).pack(side="right", padx=4)
         FlatButton(header, "⟳  Reset ke Asli", self.reset_image).pack(side="right", padx=4)
-        FlatButton(header, "⭱  Ganti Citra Baru", self.upload_image).pack(side="right", padx=4)
+        FlatButton(header, "⭱  Upload/Ganti Gambar", self.upload_image).pack(side="right", padx=4)
 
         tk.Frame(self, bg=C.BORDER, height=1).grid(
             row=0, column=0, sticky="sew"
@@ -754,6 +765,17 @@ class PicLabApp(tk.Tk):
         if operation == "flipping":
             self._build_flipping_controls(self.control_content)
 
+        elif operation in (
+            "translation",
+            "rotation",
+            "zooming",
+            "cropping"
+        ):
+            self._build_geometric_controls(
+                operation,
+                self.control_content
+            )
+
         elif operation == "negative":
             self._add_info_card(
                 "Image Negative",
@@ -794,6 +816,9 @@ class PicLabApp(tk.Tk):
                 font=F(9)
             ).pack(anchor="w", padx=25)
 
+        elif operation in ("not", "and", "or", "xor"):
+            self._build_boolean_controls(self.control_content)
+
         elif operation == "binary":
             self._add_info_card(
                 "Binary Image",
@@ -808,8 +833,17 @@ class PicLabApp(tk.Tk):
                 "yang diunggah. Rentang pengaturan setiap kanal adalah "
                 "-255 hingga +255."
             )
-
             self._build_rgb_controls(self.control_content)
+
+        elif operation == "hsv":
+            self._add_info_card(
+                "HSV Color Space",
+                "Mengonversi citra RGB ke ruang warna HSV "
+                "(Hue, Saturation, Value) dan menampilkan "
+                "kanal warna yang dipilih."
+            )
+
+            self._build_hsv_controls(self.control_content)
 
         elif operation in ("add", "subtract", "multiply", "divide"):
             default_value = (
@@ -818,6 +852,31 @@ class PicLabApp(tk.Tk):
 
             self.scalar_value.set(default_value)
             self._build_arithmetic_controls(self.control_content)
+
+        elif operation == "pseudo":
+            self._build_pseudo_color_controls(self.control_content)
+
+        elif operation == "thresholding":
+            self._add_info_card(
+                "Image Thresholding",
+                "Mengubah citra grayscale menjadi citra biner "
+                "berdasarkan nilai ambang antara 0 sampai 255."
+            )
+            self._build_thresholding_controls(self.control_content)
+
+        elif operation == "convolution":
+            self._add_info_card(
+                "Convolution",
+                "Menerapkan kernel untuk memproses citra."
+            )
+            self._build_convolution_controls(self.control_content)
+
+        elif operation == "fourier_transform":
+            self._add_info_card(
+                "Fourier Transform",
+                "Mengubah citra dari domain spasial ke domain frekuensi "
+                "menggunakan Discrete Fourier Transform (DFT)."
+            )
 
         else:
             self._add_info_card(
@@ -845,6 +904,8 @@ class PicLabApp(tk.Tk):
                    bg=C.WHITE, fg=C.TEXT, hover=C.HOVER).pack(
                        fill="x", padx=20, pady=4
                    )
+
+# Algoritma
 
     def _build_flipping_controls(self, parent):
         card = tk.Frame(parent, bg=C.PANEL,
@@ -881,6 +942,74 @@ class PicLabApp(tk.Tk):
                  wraplength=300, justify="left").pack(
                      anchor="w", padx=14, pady=(6, 12)
                  )
+
+    
+    def _build_geometric_controls(self, operation, parent):
+        """Membuat kontrol parameter operasi geometris."""
+
+        self.geometric_values = {}
+
+        if operation == "translation":
+            title = "Translation Parameters"
+            description = "Atur pergeseran citra pada sumbu X dan Y."
+            fields = [
+                ("X Translation", "tx", "50"),
+                ("Y Translation", "ty", "30"),
+            ]
+
+        elif operation == "rotation":
+            title = "Rotation Parameters"
+            description = "Tentukan sudut rotasi citra dalam derajat."
+            fields = [
+                ("Rotation Angle (°)", "angle", "70"),
+            ]
+
+        elif operation == "zooming":
+            title = "Zooming Parameters"
+            description = "Atur faktor pembesaran atau pengecilan citra."
+            fields = [
+                ("Scale X", "scale_x", "3.0"),
+                ("Scale Y", "scale_y", "2.0"),
+            ]
+
+        elif operation == "cropping":
+            title = "Cropping Parameters"
+            description = (
+                "Tentukan area pemotongan berdasarkan persentase "
+                "ukuran citra (0–100%)."
+            )
+            fields = [
+                ("X1 (%)", "x1", "25"),
+                ("Y1 (%)", "y1", "25"),
+                ("X2 (%)", "x2", "75"),
+                ("Y2 (%)", "y2", "75"),
+            ]
+
+        else:
+            return
+
+        self._add_info_card(title, description)
+
+        for label_text, key, default_value in fields:
+            tk.Label(
+                parent,
+                text=label_text,
+                bg=C.WHITE,
+                fg=C.TEXT,
+                font=F(9, "bold")
+            ).pack(anchor="w", padx=20, pady=(8, 3))
+
+            variable = tk.StringVar(value=default_value)
+            self.geometric_values[key] = variable
+
+            tk.Entry(
+                parent,
+                textvariable=variable,
+                font=F(10),
+                relief="solid",
+                bd=1
+            ).pack(fill="x", padx=20, pady=(0, 5))
+
 
     def _build_rgb_controls(self, parent):
         """Membuat kontrol pengaturan kanal RGB."""
@@ -958,6 +1087,100 @@ class PicLabApp(tk.Tk):
 
         for label in self.rgb_value_labels.values():
             label.config(text="0")
+
+    def _build_hsv_controls(self, parent):
+        self.hsv_channel = tk.StringVar(value="HSV")
+
+        tk.Label(
+            parent,
+            text="HSV Channel",
+            bg=C.WHITE,
+            fg=C.TEXT,
+            font=F(10, "bold")
+        ).pack(anchor="w", padx=20, pady=(10, 8))
+
+        channel_menu = ttk.Combobox(
+            parent,
+            textvariable=self.hsv_channel,
+            values=["HSV", "H - Hue", "S - Saturation", "V - Value"],
+            state="readonly"
+        )
+        channel_menu.pack(fill="x", padx=20)
+
+        tk.Button(
+            parent,
+            text="Reset Channel",
+            command=lambda: self.hsv_channel.set("HSV"),
+            bg=C.WHITE,
+            fg=C.TEXT,
+            font=F(9),
+            relief="solid",
+            bd=1,
+            cursor="hand2"
+        ).pack(fill="x", padx=20, pady=15)
+
+    def _build_pseudo_color_controls(self):
+        self._add_info_card(
+            "Pseudo Color",
+            "Mengubah citra grayscale menjadi citra berwarna "
+            "menggunakan pemetaan intensitas."
+        )
+
+        self.pseudo_colormap = tk.StringVar(value="JET")
+
+        ttk.Label(
+            self.control_frame,
+            text="Color Map"
+        ).pack(anchor="w", padx=15, pady=(15, 5))
+
+        colormap_options = ["JET", "HOT", "OCEAN", "RAINBOW"]
+
+        colormap_menu = ttk.Combobox(
+            self.control_frame,
+            textvariable=self.pseudo_colormap,
+            values=colormap_options,
+            state="readonly"
+        )
+        colormap_menu.pack(fill="x", padx=15)
+
+        ttk.Button(
+            self.control_frame,
+            text="Reset",
+            command=lambda: self.pseudo_colormap.set("JET")
+        ).pack(fill="x", padx=15, pady=10)
+
+    def _build_pseudo_color_controls(self, parent):
+        """Membuat kontrol pemilihan colormap Pseudo Color."""
+
+        self.pseudo_colormap = tk.StringVar(value="JET")
+
+        tk.Label(
+            parent,
+            text="Color Map",
+            bg=C.WHITE,
+            fg=C.TEXT,
+            font=F(10, "bold")
+        ).pack(anchor="w", padx=20, pady=(10, 8))
+
+        colormap_menu = ttk.Combobox(
+            parent,
+            textvariable=self.pseudo_colormap,
+            values=["JET", "HOT", "OCEAN", "RAINBOW"],
+            state="readonly"
+        )
+        colormap_menu.pack(fill="x", padx=20)
+
+        tk.Button(
+            parent,
+            text="Reset Colormap",
+            command=lambda: self.pseudo_colormap.set("JET"),
+            bg=C.WHITE,
+            fg=C.TEXT,
+            font=F(9),
+            relief="solid",
+            bd=1,
+            cursor="hand2"
+        ).pack(fill="x", padx=20, pady=15)
 
     def _build_arithmetic_controls(self, parent):
         """Membangun kontrol untuk operasi Arithmetic."""
@@ -1073,6 +1296,152 @@ class PicLabApp(tk.Tk):
         else:
             self.arithmetic_image_frame.pack(fill="x", pady=(4, 0))
 
+    
+    def _build_boolean_controls(self, parent):
+        """Membuat kontrol untuk operasi Boolean."""
+
+        if self.active_operation == "not":
+            self.boolean_image2 = None
+
+            self._add_info_card(
+                "Boolean NOT",
+                "Membalik nilai piksel citra utama menggunakan "
+                "operasi bitwise NOT."
+            )
+            return
+
+        self.boolean_image2 = None
+
+        self._add_info_card(
+            "Boolean Operation",
+            "Pilih citra kedua untuk melakukan operasi "
+            "Boolean terhadap citra utama."
+        )
+
+        self.boolean_image2_label = tk.Label(
+            parent,
+            text="Belum ada citra kedua",
+            anchor="w"
+        )
+        self.boolean_image2_label.pack(
+            fill="x",
+            padx=10,
+            pady=5
+        )
+
+        tk.Button(
+            parent,
+            text="Pilih Citra Kedua",
+            command=self._load_boolean_image2
+        ).pack(
+            fill="x",
+            padx=10,
+            pady=5
+        )
+
+
+    def _load_boolean_image2(self):
+        """Memuat citra kedua untuk operasi Boolean."""
+
+        path = filedialog.askopenfilename(
+            title="Pilih Citra Kedua",
+            filetypes=[
+                ("Image Files", "*.png *.jpg *.jpeg *.bmp"),
+            ]
+        )
+
+        if not path:
+            return
+
+        try:
+            self.boolean_image2 = Image.open(path).convert("RGB")
+
+            self.boolean_image2_label.config(
+                text=f"Citra kedua: {path.split('/')[-1]}"
+            )
+
+        except Exception as e:
+            messagebox.showerror(
+                "Error",
+                f"Gagal membuka citra:\n{e}"
+            )
+
+    def _build_convolution_controls(self, parent):
+        self.convolution_kernel = tk.StringVar(value="sharpen")
+
+        tk.Label(
+            parent,
+            text="Pilih Kernel",
+            font=F(10, "bold"),
+            bg=C.WHITE,
+            fg=C.TEXT
+        ).pack(anchor="w", padx=20, pady=(5, 8))
+
+        kernel_options = [
+            ("Identity", "identity"),
+            ("Blur", "blur"),
+            ("Sharpen", "sharpen"),
+            ("Edge Detection", "edge"),
+            ("Emboss", "emboss")
+        ]
+
+        for label, value in kernel_options:
+            tk.Radiobutton(
+                parent,
+                text=label,
+                variable=self.convolution_kernel,
+                value=value,
+                bg=C.WHITE,
+                fg=C.TEXT,
+                selectcolor=C.PANEL,
+                activebackground=C.WHITE,
+                activeforeground=C.TEXT,
+                font=F(9)
+            ).pack(anchor="w", padx=25, pady=3)
+    
+    def _build_thresholding_controls(self, parent):
+        self.threshold_value = tk.IntVar(value=127)
+
+        tk.Label(
+            parent,
+            text="Threshold Value",
+            bg=C.WHITE,
+            fg=C.TEXT,
+            font=F(10, "bold")
+        ).pack(anchor="w", padx=20, pady=(10, 5))
+
+        self.threshold_value_label = tk.Label(
+            parent,
+            text="127",
+            bg=C.WHITE,
+            fg=C.PRIMARY,
+            font=F(11, "bold")
+        )
+        self.threshold_value_label.pack(anchor="w", padx=20)
+
+        tk.Scale(
+            parent,
+            from_=0,
+            to=255,
+            orient="horizontal",
+            variable=self.threshold_value,
+            command=lambda value: self.threshold_value_label.config(
+                text=str(int(float(value)))
+            ),
+            bg=C.WHITE,
+            fg=C.TEXT,
+            highlightthickness=0,
+            troughcolor=C.BORDER
+        ).pack(fill="x", padx=20, pady=5)
+
+        tk.Button(
+            parent,
+            text="Reset Threshold",
+            command=lambda: self.threshold_value.set(127)
+        ).pack(fill="x", padx=20, pady=10)
+
+
+
     def _choose_second_image(self):
         """Memilih citra kedua untuk Image Arithmetic."""
 
@@ -1145,8 +1514,16 @@ class PicLabApp(tk.Tk):
 
     def apply_operation(self):
 
-        # Binary merupakan operasi yang tidak membutuhkan gambar awal.
-        if self.current_image is None and self.active_operation != "binary":
+        # Binary dan Grayscale Gradient tidak membutuhkan gambar awal.
+        no_image_required = (
+            self.active_operation == "binary"
+            or (
+                self.active_operation == "grayscale"
+                and self.grayscale_mode.get() == "gradient"
+            )
+        )
+
+        if self.current_image is None and not no_image_required:
             messagebox.showwarning(
                 "Tidak ada gambar",
                 "Silakan unggah gambar terlebih dahulu."
@@ -1168,6 +1545,24 @@ class PicLabApp(tk.Tk):
 
             elif self.active_operation == "negative":
                 result = image_negative(self.current_image)
+
+            elif self.active_operation == "pseudo":
+                result = pseudo_color(
+                    self.current_image,
+                    colormap=self.pseudo_colormap.get()
+                )
+            elif self.active_operation == "hsv":
+                channel = self.hsv_channel.get()
+
+                if channel == "HSV":
+                    selected_channel = "HSV"
+                else:
+                    selected_channel = channel[0]
+
+                result = hsv_conversion(
+                    self.current_image,
+                    channel=selected_channel
+                )
 
             elif self.active_operation == "flipping":
                 operation = self.selected_operation.get()
@@ -1199,6 +1594,158 @@ class PicLabApp(tk.Tk):
 
                 else:
                     return
+
+            elif self.active_operation == "thresholding":
+                threshold_value = self.threshold_value.get()
+
+                result = thresholding(
+                    self.current_image,
+                    threshold_value=threshold_value
+                )
+
+            elif self.active_operation == "convolution":
+                kernel_type = self.convolution_kernel.get()
+                result = convolution(
+                    self.current_image,
+                    kernel_type=kernel_type
+                )
+
+            elif self.active_operation == "not":
+                result = boolean_not(self.current_image)
+
+            elif self.active_operation == "and":
+                if self.boolean_image2 is None:
+                    messagebox.showwarning(
+                        "Boolean AND",
+                        "Silakan pilih citra kedua terlebih dahulu."
+                    )
+                    return
+
+                result = boolean_and(
+                    self.current_image,
+                    self.boolean_image2
+                )
+
+            elif self.active_operation == "or":
+                if self.boolean_image2 is None:
+                    messagebox.showwarning(
+                        "Boolean OR",
+                        "Silakan pilih citra kedua terlebih dahulu."
+                    )
+                    return
+
+                result = boolean_or(
+                    self.current_image,
+                    self.boolean_image2
+                )
+
+            elif self.active_operation == "xor":
+                if self.boolean_image2 is None:
+                    messagebox.showwarning(
+                        "Boolean XOR",
+                        "Silakan pilih citra kedua terlebih dahulu."
+                    )
+                    return
+
+                result = boolean_xor(
+                    self.current_image,
+                    self.boolean_image2
+                )
+
+            
+            elif self.active_operation == "translation":
+                try:
+                    tx = float(self.geometric_values["tx"].get())
+                    ty = float(self.geometric_values["ty"].get())
+                except ValueError:
+                    messagebox.showwarning(
+                        "Parameter Tidak Valid",
+                        "Masukkan nilai translasi berupa angka."
+                    )
+                    return
+
+                result = translation(
+                    self.current_image,
+                    tx=tx,
+                    ty=ty
+                )
+
+            elif self.active_operation == "rotation":
+                try:
+                    angle = float(self.geometric_values["angle"].get())
+                except ValueError:
+                    messagebox.showwarning(
+                        "Parameter Tidak Valid",
+                        "Masukkan sudut rotasi berupa angka."
+                    )
+                    return
+
+                result = rotation(
+                    self.current_image,
+                    angle=angle
+                )
+
+            elif self.active_operation == "zooming":
+                try:
+                    scale_x = float(self.geometric_values["scale_x"].get())
+                    scale_y = float(self.geometric_values["scale_y"].get())
+                except ValueError:
+                    messagebox.showwarning(
+                        "Parameter Tidak Valid",
+                        "Masukkan faktor skala berupa angka."
+                    )
+                    return
+
+                if scale_x <= 0 or scale_y <= 0:
+                    messagebox.showwarning(
+                        "Parameter Tidak Valid",
+                        "Faktor skala harus lebih besar dari 0."
+                    )
+                    return
+
+                result = zooming(
+                    self.current_image,
+                    scale_x=scale_x,
+                    scale_y=scale_y
+                )
+
+            elif self.active_operation == "cropping":
+                try:
+                    x1 = int(self.geometric_values["x1"].get())
+                    y1 = int(self.geometric_values["y1"].get())
+                    x2 = int(self.geometric_values["x2"].get())
+                    y2 = int(self.geometric_values["y2"].get())
+                except ValueError:
+                    messagebox.showwarning(
+                        "Parameter Tidak Valid",
+                        "Koordinat cropping harus berupa bilangan bulat."
+                    )
+                    return
+
+                if not (0 <= x1 < x2 <= 100):
+                    messagebox.showwarning(
+                        "Koordinat Tidak Valid",
+                        "Pastikan 0 <= X1 < X2 <= 100."
+                    )
+                    return
+
+                if not (0 <= y1 < y2 <= 100):
+                    messagebox.showwarning(
+                        "Koordinat Tidak Valid",
+                        "Pastikan 0 <= Y1 < Y2 <= 100."
+                    )
+                    return
+
+                result = cropping(
+                    self.current_image,
+                    x1=x1,
+                    y1=y1,
+                    x2=x2,
+                    y2=y2
+                )
+
+            elif self.active_operation == "fourier_transform":
+                result = fourier_transform(self.current_image)
 
             elif self.active_operation in (
                 "add", "subtract", "multiply", "divide"
@@ -1254,6 +1801,7 @@ class PicLabApp(tk.Tk):
                         self.current_image,
                         self.second_image
                     )
+
 
             else:
                 messagebox.showinfo(
