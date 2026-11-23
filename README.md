@@ -115,8 +115,6 @@ PicLab/
 Keterangan:
 - `main.py` merupakan file utama untuk menjalankan aplikasi dan mengatur antarmuka.
 - `operations/` berisi implementasi algoritma pengolahan citra digital.
-- `Laporan/` berisi dokumentasi dan laporan proyek.
-- `main copy.py` merupakan salinan file utama.
 
 ## Instalasi dan Penggunaan
 
