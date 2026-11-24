@@ -1,12 +1,5 @@
-"""PicLab - Seven | PCD - Kelompok 7
+"""PicLab | PCD - Kelompok 7
 Aplikasi Pengolahan Citra Digital berbasis Tkinter.
-
-Menu mengikuti struktur rekomendasi:
-File, Basic Ops, Enhancement, Noise, Edge Detection,
-Segmentation, dan About.
-
-Operasi yang sudah aktif: Negative dan Flipping (horizontal, vertical, both).
-Operasi lainnya ditampilkan sebagai placeholder sampai algoritmanya diintegrasikan.
 
 Kebutuhan: pip install pillow numpy opencv-python
 Jalankan: python main.py
@@ -56,6 +49,8 @@ from operations.basic import (
     thresholding,
     convolution,
     fourier_transform,
+    cmy_conversion,
+    yuv_conversion,
 )
 
 
@@ -338,7 +333,7 @@ class PicLabApp(tk.Tk):
         "laplacian": ("Laplacian", "Deteksi tepi menggunakan turunan kedua Laplacian."),
         "log": ("Laplacian of Gaussian (LoG)", "Menggabungkan Gaussian smoothing dan Laplacian."),
         "canny": ("Canny", "Deteksi tepi menggunakan tahapan algoritma Canny."),
-        "about_team": ("Info Tim Developer", "PicLab - Seven dikembangkan untuk proyek Pengolahan Citra Digital."),
+        "about_team": ("Info Tim Developer", "PicLab - dikembangkan untuk proyek Pengolahan Citra Digital."),
         "about_github": ("GitHub", "Tautan repositori GitHub tim dapat ditambahkan di sini."),
         "about_youtube": ("YouTube Tutorial", "Tautan video tutorial aplikasi dapat ditambahkan di sini."),
     }
@@ -389,7 +384,7 @@ class PicLabApp(tk.Tk):
 
         tk.Label(header, text="◉", bg=C.WHITE, fg=C.PRIMARY,
                  font=F(20, "bold")).pack(side="left", padx=(26, 6))
-        tk.Label(header, text="PicLab - Seven", bg=C.WHITE, fg=C.TEXT,
+        tk.Label(header, text="PicLab", bg=C.WHITE, fg=C.TEXT,
                  font=F(15, "bold")).pack(side="left")
         tk.Frame(header, bg=C.BORDER, width=1, height=22).pack(side="left", padx=16)
         tk.Label(header, text="PCD - Kelompok 7", bg=C.WHITE, fg=C.MUTED,
@@ -472,7 +467,7 @@ class PicLabApp(tk.Tk):
         footer = tk.Frame(self.sidebar, bg=C.WHITE)
         footer.pack(side="bottom", fill="x", padx=20, pady=12)
         tk.Frame(footer, bg=C.BORDER, height=1).pack(fill="x", pady=(0, 8))
-        tk.Label(footer, text="PicLab - Seven", bg=C.WHITE,
+        tk.Label(footer, text="PicLab", bg=C.WHITE,
                  fg=C.MUTED, font=F(9)).pack(anchor="w")
 
         tk.Frame(parent, bg=C.BORDER, width=1).grid(
@@ -692,9 +687,6 @@ class PicLabApp(tk.Tk):
         FlatButton(action_row, "⟳  Reset", self.reset_image).grid(
             row=0, column=0, sticky="ew", padx=(0, 4)
         )
-        FlatButton(action_row, "‹›  Kode Python", self.show_code_info).grid(
-            row=0, column=1, sticky="ew", padx=(4, 0)
-        )
 
     def _clear_control_content(self):
         for widget in self.control_content.winfo_children():
@@ -709,7 +701,7 @@ class PicLabApp(tk.Tk):
             "Noise": "Pilih jenis derau yang akan ditambahkan pada citra.",
             "Edge Detection": "Pilih metode untuk mendeteksi tepi objek pada citra.",
             "Segmentation": "Kategori segmentasi citra. Submenu dapat ditambahkan setelah materi atau algoritmanya ditentukan.",
-            "About": "Informasi aplikasi dan tim pengembang PicLab - Seven.",
+            "About": "Informasi aplikasi dan tim pengembang PicLab.",
         }
         tk.Label(self.control_content, text=category, bg=C.WHITE,
                  fg=C.TEXT, font=F(15, "bold")).pack(
@@ -725,7 +717,7 @@ class PicLabApp(tk.Tk):
             self._add_menu_action("Save As", self.save_image_as)
             self._add_menu_action("Exit", self.destroy)
         elif category == "About":
-            self._add_info_card("PicLab - Seven", "Aplikasi proyek Pengolahan Citra Digital Kelompok 7.")
+            self._add_info_card("PicLab", "Aplikasi proyek Pengolahan Citra Digital Kelompok 7.")
             self._add_info_card("Tutorial", "Tautan GitHub dan YouTube dapat ditambahkan setelah tersedia.")
         elif category == "Segmentation":
             self._add_info_card("Belum ada submenu", "Referensi menu yang diberikan belum merinci metode segmentasi.")
@@ -825,6 +817,20 @@ class PicLabApp(tk.Tk):
                 "Menghasilkan citra biner berukuran 100 × 100 piksel. "
                 "Nilai 0 merepresentasikan hitam dan 255 merepresentasikan putih."
             )
+
+        elif operation == "cmy":
+            self._add_info_card(
+                "CMY Color Space",
+                "Memisahkan citra ke dalam kanal Cyan, Magenta, dan Yellow."
+            )
+            self._build_cmy_controls(self.control_content)
+
+        elif operation == "yuv":
+            self._add_info_card(
+                "YUV Color Space",
+                "Memisahkan citra ke dalam kanal Luminance (Y), U, dan V."
+            )
+            self._build_yuv_controls(self.control_content)
 
         elif operation == "rgb":
             self._add_info_card(
@@ -1440,6 +1446,68 @@ class PicLabApp(tk.Tk):
             command=lambda: self.threshold_value.set(127)
         ).pack(fill="x", padx=20, pady=10)
 
+    def _build_cmy_controls(self, parent):
+        self.cmy_channel = tk.StringVar(value="C")
+
+        tk.Label(
+            parent,
+            text="Pilih Kanal CMY",
+            font=F(10, "bold"),
+            bg=C.WHITE,
+            fg=C.TEXT
+        ).pack(anchor="w", padx=20, pady=(5, 8))
+
+        channels = [
+            ("Cyan (C)", "C"),
+            ("Magenta (M)", "M"),
+            ("Yellow (Y)", "Y")
+        ]
+
+        for label, value in channels:
+            tk.Radiobutton(
+                parent,
+                text=label,
+                variable=self.cmy_channel,
+                value=value,
+                bg=C.WHITE,
+                fg=C.TEXT,
+                selectcolor=C.PANEL,
+                activebackground=C.WHITE,
+                activeforeground=C.TEXT,
+                font=F(9)
+            ).pack(anchor="w", padx=25, pady=3)
+
+    def _build_yuv_controls(self, parent):
+        self.yuv_channel = tk.StringVar(value="Y")
+
+        tk.Label(
+            parent,
+            text="Pilih Kanal YUV",
+            font=F(10, "bold"),
+            bg=C.WHITE,
+            fg=C.TEXT
+        ).pack(anchor="w", padx=20, pady=(5, 8))
+
+        channels = [
+            ("Luminance (Y)", "Y"),
+            ("Chrominance U", "U"),
+            ("Chrominance V", "V")
+        ]
+
+        for label, value in channels:
+            tk.Radiobutton(
+                parent,
+                text=label,
+                variable=self.yuv_channel,
+                value=value,
+                bg=C.WHITE,
+                fg=C.TEXT,
+                selectcolor=C.PANEL,
+                activebackground=C.WHITE,
+                activeforeground=C.TEXT,
+                font=F(9)
+            ).pack(anchor="w", padx=25, pady=3)
+
 
 
     def _choose_second_image(self):
@@ -1802,6 +1870,17 @@ class PicLabApp(tk.Tk):
                         self.second_image
                     )
 
+            elif self.active_operation == "cmy":
+                result = cmy_conversion(
+                    self.current_image,
+                    channel=self.cmy_channel.get()
+                )
+
+            elif self.active_operation == "yuv":
+                result = yuv_conversion(
+                    self.current_image,
+                    channel=self.yuv_channel.get()
+                )
 
             else:
                 messagebox.showinfo(
@@ -1870,13 +1949,6 @@ class PicLabApp(tk.Tk):
             messagebox.showinfo("Berhasil", "Citra hasil berhasil disimpan.")
         except Exception as exc:
             messagebox.showerror("Gagal menyimpan citra", str(exc))
-
-    def show_code_info(self):
-        messagebox.showinfo(
-            "Kode Python",
-            "Kode algoritma operasi akan ditampilkan di sini pada tahap pengembangan berikutnya."
-        )
-
 
 if __name__ == "__main__":
     app = PicLabApp()

@@ -554,3 +554,67 @@ def fourier_transform(image):
     )
 
     return np.uint8(result) 
+
+# cmy
+def cmy_conversion(image, channel="C"):
+    image_array = np.asarray(image, dtype=np.uint8)
+
+    if len(image_array.shape) != 3:
+        image_array = cv2.cvtColor(
+            image_array,
+            cv2.COLOR_GRAY2RGB
+        )
+
+    # Normalisasi nilai RGB
+    rgb = image_array.astype(np.float32) / 255.0
+
+    # Konversi RGB ke CMY
+    cmy = 1.0 - rgb
+
+    # Memisahkan kanal CMY
+    cyan = cmy[:, :, 0]
+    magenta = cmy[:, :, 1]
+    yellow = cmy[:, :, 2]
+
+    if channel == "C":
+        result = cyan
+    elif channel == "M":
+        result = magenta
+    elif channel == "Y":
+        result = yellow
+    else:
+        raise ValueError("Kanal CMY tidak tersedia.")
+
+    return np.uint8(result * 255)
+
+# yuv
+def yuv_conversion(image, channel="Y"):
+    image_array = np.asarray(image, dtype=np.uint8)
+
+    if len(image_array.shape) != 3:
+        image_array = cv2.cvtColor(
+            image_array,
+            cv2.COLOR_GRAY2RGB
+        )
+
+    rgb = image_array.astype(np.float32)
+
+    # Konversi RGB ke YUV (BT.601)
+    r = rgb[:, :, 0]
+    g = rgb[:, :, 1]
+    b = rgb[:, :, 2]
+
+    y = 0.299 * r + 0.587 * g + 0.114 * b
+    u = -0.14713 * r - 0.28886 * g + 0.436 * b
+    v = 0.615 * r - 0.51499 * g - 0.10001 * b
+
+    if channel == "Y":
+        result = y
+    elif channel == "U":
+        result = u + 128
+    elif channel == "V":
+        result = v + 128
+    else:
+        raise ValueError("Kanal YUV tidak tersedia.")
+
+    return np.uint8(np.clip(result, 0, 255))
