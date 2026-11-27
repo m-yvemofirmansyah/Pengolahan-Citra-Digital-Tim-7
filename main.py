@@ -1,10 +1,3 @@
-"""PicLab | PCD - Kelompok 7
-Aplikasi Pengolahan Citra Digital berbasis Tkinter.
-
-Kebutuhan: pip install pillow numpy opencv-python
-Jalankan: python main.py
-"""
-
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import os
@@ -53,10 +46,36 @@ from operations.basic import (
     yuv_conversion,
 )
 
+from operations.enhancement import (
+    brightness_adjustment,
+    contrast_adjustment,
+    histogram_equalization,
+    lowpass_filtering,
+    median_filtering,
+    ideal_highpass_filtering,
+    butterworth_highpass_filtering,
+    geometric_correction
+)
 
-# ============================================================
+from operations.noise import (
+    gaussian_noise,
+    rayleigh_noise,
+    erlang_noise,
+    exponential_noise,
+    uniform_noise,
+    impulse_noise,
+)
+
+from operations.edge_detection import (
+    sobel_edge_detection,
+    prewitt_edge_detection,
+    robert_edge_detection,
+    laplacian_edge_detection,
+    log_edge_detection,
+    canny_edge_detection,
+)
+
 # KONFIGURASI TAMPILAN
-# ============================================================
 class C:
     PRIMARY = "#1A4FD6"
     PRIMARY_DARK = "#1440B0"
@@ -80,10 +99,7 @@ MONO = "Consolas"
 def F(size=10, weight="normal"):
     return (FONT, size, weight)
 
-
-# ============================================================
 # KOMPONEN BANTU
-# ============================================================
 class FlatButton(tk.Label):
     """Tombol datar berbasis Label."""
 
@@ -184,10 +200,7 @@ class ImagePanel(tk.Frame):
         self._tk_image = ImageTk.PhotoImage(resized)
         self.canvas.create_image(cw // 2, ch // 2, image=self._tk_image)
 
-
-# ============================================================
 # APLIKASI UTAMA
-# ============================================================
 class PicLabApp(tk.Tk):
     MENU_STRUCTURE = {
         "File": {
@@ -276,7 +289,6 @@ class PicLabApp(tk.Tk):
                 "Canny": "canny",
             },
         },
-        "Segmentation": {},
         "About": {
             "Info Tim Developer": "about_team",
             "GitHub": "about_github",
@@ -335,7 +347,6 @@ class PicLabApp(tk.Tk):
         "canny": ("Canny", "Deteksi tepi menggunakan tahapan algoritma Canny."),
         "about_team": ("Info Tim Developer", "PicLab - dikembangkan untuk proyek Pengolahan Citra Digital."),
         "about_github": ("GitHub", "Tautan repositori GitHub tim dapat ditambahkan di sini."),
-        "about_youtube": ("YouTube Tutorial", "Tautan video tutorial aplikasi dapat ditambahkan di sini."),
     }
 
     def __init__(self):
@@ -417,9 +428,7 @@ class PicLabApp(tk.Tk):
         self._build_workspace(body)
         self._build_control_panel(body)
 
-    # --------------------------------------------------------
-    # SIDEBAR DINAMIS DAN BERTINGKAT
-    # --------------------------------------------------------
+    # SIDEBAR
     def _build_sidebar(self, parent):
         self.sidebar = tk.Frame(parent, bg=C.WHITE, width=270)
         self.sidebar.grid(row=0, column=0, sticky="ns")
@@ -618,9 +627,7 @@ class PicLabApp(tk.Tk):
         )
         self.panel_after.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
 
-    # --------------------------------------------------------
     # PANEL KONTROL DINAMIS
-    # --------------------------------------------------------
     def _build_control_panel(self, parent):
         self.control_panel = tk.Frame(parent, bg=C.WHITE, width=390)
         self.control_panel.grid(row=0, column=2, sticky="ns")
@@ -882,6 +889,162 @@ class PicLabApp(tk.Tk):
                 "Fourier Transform",
                 "Mengubah citra dari domain spasial ke domain frekuensi "
                 "menggunakan Discrete Fourier Transform (DFT)."
+            )
+
+        elif operation == "brightness":
+            self._add_info_card(
+                "Brightness Adjustment",
+                "Mengatur tingkat kecerahan citra dengan menambah atau mengurangi nilai intensitas piksel."
+            )
+            self._build_brightness_controls(self.control_content)
+
+        elif operation == "contrast":
+            self._add_info_card(
+                "Contrast Adjustment",
+                "Mengatur perbedaan intensitas antara bagian terang dan gelap pada citra."
+            )
+            self._build_contrast_controls(self.control_content)
+
+        elif operation == "histogram_equalization":
+            self._build_histogram_equalization_controls(self.control_content)
+
+        
+        elif operation == "lowpass_filtering":
+            self._add_info_card(
+                "Lowpass Filtering",
+                "Menghaluskan citra menggunakan Mean/Average Filter pada domain spasial."
+            )
+            self._build_lowpass_controls(self.control_content)
+
+        elif operation == "median_filtering":
+            self._add_info_card(
+                "Median Filtering",
+                "Mengurangi noise pada citra menggunakan nilai median dari piksel tetangga."
+            )
+            self._build_median_controls(self.control_content)
+
+        elif operation == "ihpf":
+            self._add_info_card(
+                "Ideal High Pass Filter",
+                "Mempertajam citra dengan melewatkan komponen frekuensi tinggi dan menekan frekuensi rendah."
+            )
+            self._build_ihpf_controls(self.control_content)
+
+        elif operation == "bhpf":
+            self._add_info_card(
+                "Butterworth High Pass Filter",
+                "Mempertajam citra menggunakan filter frekuensi tinggi dengan transisi yang lebih halus."
+            )
+            self._build_bhpf_controls(self.control_content)
+
+        elif operation == "geometric_correction":
+            self._add_info_card(
+                "Geometric Correction",
+                "Mengoreksi distorsi perspektif pada citra menggunakan transformasi perspektif berdasarkan empat titik sudut."
+            )
+            self._build_geometric_correction_controls(
+                self.control_content
+            )
+
+        elif operation == "gaussian_noise":
+            self._add_info_card(
+                "Gaussian Noise",
+                "Menambahkan derau acak dengan distribusi Gaussian "
+                "pada piksel citra."
+            )
+            self._build_gaussian_noise_controls(
+                self.control_content
+            )
+
+        elif operation == "rayleigh_noise":
+            self._add_info_card(
+                "Rayleigh Noise",
+                "Menambahkan derau acak dengan distribusi Rayleigh "
+                "pada piksel citra."
+            )
+            self._build_rayleigh_noise_controls(
+                self.control_content
+            )
+
+        elif operation == "erlang_noise":
+            self._add_info_card(
+                "Erlang (Gamma) Noise",
+                "Menambahkan derau berdasarkan distribusi Erlang. "
+                "Shape menentukan bentuk distribusi, sedangkan Scale "
+                "mengatur penyebaran noise."
+            )
+            self._build_erlang_noise_controls(
+                self.control_content
+            )
+
+        elif operation == "exponential_noise":
+            self._add_info_card(
+                "Exponential Noise",
+                "Menambahkan derau berdasarkan distribusi eksponensial. "
+                "Parameter Scale mengatur tingkat penyebaran noise."
+            )
+            self._build_exponential_noise_controls(
+                self.control_content
+            )
+        elif operation == "uniform_noise":
+            self._add_info_card(
+                "Uniform Noise",
+                "Menambahkan derau berdasarkan distribusi uniform. "
+                "Parameter Strength mengatur rentang intensitas noise."
+            )
+            self._build_uniform_noise_controls(self.control_content)
+
+        elif operation == "impulse_noise":
+            self._add_info_card(
+                "Impulse Noise",
+                "Menambahkan Salt and Pepper Noise berupa titik-titik "
+                "hitam dan putih secara acak. Noise Amount mengatur "
+                "persentase piksel yang terkena noise."
+            )
+            self._build_impulse_noise_controls(self.control_content)
+
+        elif operation == "sobel":
+            self._add_info_card(
+                "Sobel Edge Detection",
+                "Mendeteksi tepi citra menggunakan gradien "
+                "pada arah X dan Y. Kedua gradien digabungkan "
+                "untuk menghasilkan magnitudo tepi."
+            )
+
+        elif operation == "prewitt":
+            self._add_info_card(
+                "Prewitt Edge Detection",
+                "Mendeteksi tepi citra menggunakan operator "
+                "Prewitt dengan kernel gradien arah X dan Y."
+            )
+
+        elif operation == "robert":
+            self._add_info_card(
+                "Robert Edge Detection",
+                "Mendeteksi tepi citra menggunakan operator "
+                "Roberts Cross dengan kernel gradien diagonal."
+            )
+
+        elif operation == "laplacian":
+            self._add_info_card(
+                "Laplacian Edge Detection",
+                "Mendeteksi tepi citra menggunakan turunan "
+                "kedua dengan operator Laplacian."
+            )
+
+        elif operation == "log":
+            self._add_info_card(
+                "Laplacian of Gaussian",
+                "Menghaluskan citra menggunakan Gaussian Blur "
+                "sebelum mendeteksi tepi dengan operator Laplacian."
+            )
+
+        elif operation == "canny":
+            self._add_info_card(
+                "Canny Edge Detection",
+                "Mendeteksi tepi citra menggunakan tahapan "
+                "Gaussian smoothing, gradient calculation, "
+                "non-maximum suppression, dan hysteresis thresholding."
             )
 
         else:
@@ -1508,7 +1671,668 @@ class PicLabApp(tk.Tk):
                 font=F(9)
             ).pack(anchor="w", padx=25, pady=3)
 
+    def _build_brightness_controls(self, parent):
+        self.brightness_value = tk.IntVar(value=0)
 
+        tk.Label(
+            parent,
+            text="Brightness Level",
+            font=F(10, "bold"),
+            bg=C.WHITE,
+            fg=C.TEXT
+        ).pack(anchor="w", padx=20, pady=(5, 8))
+
+        tk.Scale(
+            parent,
+            from_=-100,
+            to=100,
+            orient=tk.HORIZONTAL,
+            variable=self.brightness_value,
+            resolution=1,
+            showvalue=True,
+            bg=C.WHITE,
+            fg=C.TEXT,
+            troughcolor=C.PANEL,
+            highlightthickness=0,
+            activebackground=C.PANEL,
+            font=F(9)
+        ).pack(fill="x", padx=20, pady=5)
+
+        tk.Label(
+            parent,
+            text="Geser ke kanan untuk mencerahkan dan ke kiri untuk menggelapkan citra.",
+            font=F(8),
+            bg=C.WHITE,
+            fg=C.MUTED,
+            wraplength=220,
+            justify="left"
+        ).pack(anchor="w", padx=20, pady=(5, 10))
+
+    def _build_contrast_controls(self, parent):
+        self.contrast_factor = tk.DoubleVar(value=1.0)
+
+        tk.Label(
+            parent,
+            text="Contrast Level",
+            font=F(10, "bold"),
+            bg=C.WHITE,
+            fg=C.TEXT
+        ).pack(anchor="w", padx=20, pady=(5, 8))
+
+        tk.Scale(
+            parent,
+            from_=0.1,
+            to=3.0,
+            orient=tk.HORIZONTAL,
+            variable=self.contrast_factor,
+            resolution=0.1,
+            showvalue=True,
+            bg=C.WHITE,
+            fg=C.TEXT,
+            troughcolor=C.PANEL,
+            highlightthickness=0,
+            activebackground=C.PANEL,
+            font=F(9)
+        ).pack(fill="x", padx=20, pady=5)
+
+        tk.Label(
+            parent,
+            text="Geser ke kiri untuk mengurangi kontras dan ke kanan untuk meningkatkan kontras.",
+            font=F(8),
+            bg=C.WHITE,
+            fg=C.MUTED,
+            wraplength=220,
+            justify="left"
+        ).pack(anchor="w", padx=20, pady=(5, 10))
+
+    def _build_histogram_equalization_controls(self, parent):
+        self._add_info_card(
+            "Histogram Equalization",
+            "Meningkatkan kontras citra dengan mendistribusikan intensitas piksel secara lebih merata."
+        )
+
+    def _build_lowpass_controls(self, parent):
+        self.lowpass_kernel = tk.IntVar(value=3)
+
+        tk.Label(
+            parent,
+            text="Kernel Size",
+            font=F(10, "bold"),
+            bg=C.WHITE,
+            fg=C.TEXT
+        ).pack(anchor="w", padx=20, pady=(5, 8))
+
+        tk.Scale(
+            parent,
+            from_=3,
+            to=15,
+            orient=tk.HORIZONTAL,
+            variable=self.lowpass_kernel,
+            resolution=2,
+            showvalue=True,
+            bg=C.WHITE,
+            fg=C.TEXT,
+            troughcolor=C.PANEL,
+            highlightthickness=0,
+            activebackground=C.PANEL,
+            font=F(9)
+        ).pack(fill="x", padx=20, pady=5)
+
+        tk.Label(
+            parent,
+            text="Mengatur ukuran kernel untuk menghaluskan citra. Semakin besar kernel, semakin kuat efek blur.",
+            font=F(8),
+            bg=C.WHITE,
+            fg=C.MUTED,
+            wraplength=220,
+            justify="left"
+        ).pack(anchor="w", padx=20, pady=(5, 10))
+
+
+    def _build_median_controls(self, parent):
+        self.median_kernel = tk.IntVar(value=3)
+
+        tk.Label(
+            parent,
+            text="Kernel Size",
+            font=F(10, "bold"),
+            bg=C.WHITE,
+            fg=C.TEXT
+        ).pack(anchor="w", padx=20, pady=(5, 8))
+
+        tk.Scale(
+            parent,
+            from_=3,
+            to=15,
+            orient=tk.HORIZONTAL,
+            variable=self.median_kernel,
+            resolution=2,
+            showvalue=True,
+            bg=C.WHITE,
+            fg=C.TEXT,
+            troughcolor=C.PANEL,
+            highlightthickness=0,
+            activebackground=C.PANEL,
+            font=F(9)
+        ).pack(fill="x", padx=20, pady=5)
+
+        tk.Label(
+            parent,
+            text="Mengatur ukuran kernel untuk mengurangi noise menggunakan nilai median piksel tetangga.",
+            font=F(8),
+            bg=C.WHITE,
+            fg=C.MUTED,
+            wraplength=220,
+            justify="left"
+        ).pack(anchor="w", padx=20, pady=(5, 10))
+
+    
+    def _build_ihpf_controls(self, parent):
+        self.ihpf_cutoff = tk.IntVar(value=30)
+
+        tk.Label(
+            parent,
+            text="Cutoff Frequency",
+            font=F(10, "bold"),
+            bg=C.WHITE,
+            fg=C.TEXT
+        ).pack(anchor="w", padx=20, pady=(5, 8))
+
+        tk.Scale(
+            parent,
+            from_=1,
+            to=100,
+            orient=tk.HORIZONTAL,
+            variable=self.ihpf_cutoff,
+            resolution=1,
+            showvalue=True,
+            bg=C.WHITE,
+            fg=C.TEXT,
+            troughcolor=C.PANEL,
+            highlightthickness=0,
+            activebackground=C.PANEL,
+            font=F(9)
+        ).pack(fill="x", padx=20, pady=5)
+
+        tk.Label(
+            parent,
+            text="Mengatur batas frekuensi yang dilewatkan oleh Ideal High Pass Filter.",
+            font=F(8),
+            bg=C.WHITE,
+            fg=C.MUTED,
+            wraplength=220,
+            justify="left"
+        ).pack(anchor="w", padx=20, pady=(5, 10))
+
+
+    def _build_bhpf_controls(self, parent):
+        self.bhpf_cutoff = tk.IntVar(value=30)
+        self.bhpf_order = tk.IntVar(value=2)
+
+        tk.Label(
+            parent,
+            text="Cutoff Frequency",
+            font=F(10, "bold"),
+            bg=C.WHITE,
+            fg=C.TEXT
+        ).pack(anchor="w", padx=20, pady=(5, 8))
+
+        tk.Scale(
+            parent,
+            from_=1,
+            to=100,
+            orient=tk.HORIZONTAL,
+            variable=self.bhpf_cutoff,
+            resolution=1,
+            showvalue=True,
+            bg=C.WHITE,
+            fg=C.TEXT,
+            troughcolor=C.PANEL,
+            highlightthickness=0,
+            activebackground=C.PANEL,
+            font=F(9)
+        ).pack(fill="x", padx=20, pady=5)
+
+        tk.Label(
+            parent,
+            text="Filter Order",
+            font=F(10, "bold"),
+            bg=C.WHITE,
+            fg=C.TEXT
+        ).pack(anchor="w", padx=20, pady=(12, 8))
+
+        tk.Scale(
+            parent,
+            from_=1,
+            to=5,
+            orient=tk.HORIZONTAL,
+            variable=self.bhpf_order,
+            resolution=1,
+            showvalue=True,
+            bg=C.WHITE,
+            fg=C.TEXT,
+            troughcolor=C.PANEL,
+            highlightthickness=0,
+            activebackground=C.PANEL,
+            font=F(9)
+        ).pack(fill="x", padx=20, pady=5)
+
+        tk.Label(
+            parent,
+            text="Cutoff mengatur batas frekuensi, sedangkan Order mengatur ketajaman transisi filter.",
+            font=F(8),
+            bg=C.WHITE,
+            fg=C.MUTED,
+            wraplength=220,
+            justify="left"
+        ).pack(anchor="w", padx=20, pady=(5, 10))
+
+    
+    def _build_geometric_correction_controls(self, parent):
+        self._add_info_card(
+            "Panduan Penggunaan",
+            "Geometric Correction digunakan untuk meluruskan objek "
+            "yang mengalami distorsi perspektif.\n\n"
+            "• Koordinat X dan Y menggunakan persentase (0–100%).\n"
+            "• X menunjukkan posisi horizontal (kiri ke kanan).\n"
+            "• Y menunjukkan posisi vertikal (atas ke bawah).\n"
+            "• Tentukan titik secara berurutan: Top Left, Top Right, "
+            "Bottom Right, dan Bottom Left.\n"
+            "• Pastikan keempat titik membentuk area objek dan tidak "
+            "saling berpotongan.\n\n"
+            "Tips: Pilih empat sudut objek yang ingin diluruskan, "
+            "misalnya sudut-sudut dokumen atau papan yang difoto miring."
+)
+
+        self.geometric_correction_values = {}
+
+        tk.Label(
+            parent,
+            text="Tentukan Empat Titik Sudut",
+            bg=C.WHITE,
+            fg=C.TEXT,
+            font=F(10, "bold")
+        ).pack(anchor="w", padx=20, pady=(5, 8))
+
+        tk.Label(
+            parent,
+            text=(
+                "Masukkan koordinat empat sudut objek dalam "
+                "persentase ukuran gambar (0–100%). "
+                "Urutan titik harus dimulai dari kiri atas "
+                "dan searah jarum jam."
+            ),
+            bg=C.WHITE,
+            fg=C.MUTED,
+            font=F(8),
+            wraplength=300,
+            justify="left"
+        ).pack(anchor="w", padx=20, pady=(0, 10))
+
+        points = [
+            ("Top Left (Kiri Atas)", "tl_x", "tl_y", "10", "10"),
+            ("Top Right (Kanan Atas)", "tr_x", "tr_y", "90", "10"),
+            ("Bottom Right (Kanan Bawah)", "br_x", "br_y", "90", "90"),
+            ("Bottom Left (Kiri Bawah)", "bl_x", "bl_y", "10", "90"),
+        ]
+
+        for title, x_key, y_key, default_x, default_y in points:
+            frame = tk.Frame(parent, bg=C.PANEL)
+            frame.pack(fill="x", padx=20, pady=5)
+
+            tk.Label(
+                frame,
+                text=title,
+                bg=C.PANEL,
+                fg=C.TEXT,
+                font=F(9, "bold")
+            ).pack(anchor="w", padx=10, pady=(8, 4))
+
+            coordinate_frame = tk.Frame(frame, bg=C.PANEL)
+            coordinate_frame.pack(fill="x", padx=10, pady=(0, 8))
+
+            tk.Label(
+                coordinate_frame,
+                text="X (%)",
+                bg=C.PANEL,
+                fg=C.MUTED,
+                font=F(8)
+            ).pack(side="left")
+
+            x_variable = tk.StringVar(value=default_x)
+            self.geometric_correction_values[x_key] = x_variable
+
+            tk.Entry(
+                coordinate_frame,
+                textvariable=x_variable,
+                width=8,
+                font=F(9)
+            ).pack(side="left", padx=(5, 15))
+
+            tk.Label(
+                coordinate_frame,
+                text="Y (%)",
+                bg=C.PANEL,
+                fg=C.MUTED,
+                font=F(8)
+            ).pack(side="left")
+
+            y_variable = tk.StringVar(value=default_y)
+            self.geometric_correction_values[y_key] = y_variable
+
+            tk.Entry(
+                coordinate_frame,
+                textvariable=y_variable,
+                width=8,
+                font=F(9)
+            ).pack(side="left", padx=5)
+
+        tk.Button(
+            parent,
+            text="Reset Koordinat",
+            command=self._reset_geometric_correction_values,
+            bg=C.WHITE,
+            fg=C.TEXT,
+            font=F(9),
+            relief="solid",
+            bd=1,
+            cursor="hand2"
+        ).pack(fill="x", padx=20, pady=10)
+
+    def _reset_geometric_correction_values(self):
+        defaults = {
+            "tl_x": "10", "tl_y": "10",
+            "tr_x": "90", "tr_y": "10",
+            "br_x": "90", "br_y": "90",
+            "bl_x": "10", "bl_y": "90",
+        }
+
+        for key, value in defaults.items():
+            self.geometric_correction_values[key].set(value)
+
+    def _build_gaussian_noise_controls(self, parent):
+        self.gaussian_variance = tk.IntVar(value=25)
+
+        tk.Label(
+            parent,
+            text="Noise Variance",
+            font=F(10, "bold"),
+            bg=C.WHITE,
+            fg=C.TEXT
+        ).pack(anchor="w", padx=20, pady=(5, 8))
+
+        tk.Scale(
+            parent,
+            from_=0,
+            to=100,
+            orient=tk.HORIZONTAL,
+            variable=self.gaussian_variance,
+            resolution=1,
+            showvalue=True,
+            bg=C.WHITE,
+            fg=C.TEXT,
+            troughcolor=C.PANEL,
+            highlightthickness=0,
+            activebackground=C.PANEL,
+            font=F(9)
+        ).pack(fill="x", padx=20, pady=5)
+
+        tk.Label(
+            parent,
+            text=(
+                "Mengatur intensitas Gaussian Noise. "
+                "Semakin besar variance, semakin kuat derau "
+                "yang ditambahkan pada citra. Nilai 0 tidak "
+                "menambahkan derau."
+            ),
+            font=F(8),
+            bg=C.WHITE,
+            fg=C.MUTED,
+            wraplength=300,
+            justify="left"
+        ).pack(anchor="w", padx=20, pady=(5, 10))
+
+    def _build_rayleigh_noise_controls(self, parent):
+        self.rayleigh_scale = tk.IntVar(value=10)
+
+        tk.Label(
+            parent,
+            text="Scale Parameter",
+            font=F(10, "bold"),
+            bg=C.WHITE,
+            fg=C.TEXT
+        ).pack(anchor="w", padx=20, pady=(5, 8))
+
+        tk.Scale(
+            parent,
+            from_=1,
+            to=30,
+            orient=tk.HORIZONTAL,
+            variable=self.rayleigh_scale,
+            resolution=1,
+            showvalue=True,
+            bg=C.WHITE,
+            fg=C.TEXT,
+            troughcolor=C.PANEL,
+            highlightthickness=0,
+            activebackground=C.PANEL,
+            font=F(9)
+        ).pack(fill="x", padx=20, pady=5)
+
+        tk.Label(
+            parent,
+            text=(
+                "Mengatur skala distribusi Rayleigh Noise. "
+                "Semakin besar nilai scale, semakin kuat "
+                "variasi derau yang ditambahkan pada citra."
+            ),
+            font=F(8),
+            bg=C.WHITE,
+            fg=C.MUTED,
+            wraplength=300,
+            justify="left"
+        ).pack(anchor="w", padx=20, pady=(5, 10))
+
+    
+    def _build_erlang_noise_controls(self, parent):
+        self.erlang_shape = tk.IntVar(value=2)
+        self.erlang_scale = tk.DoubleVar(value=10)
+
+        card = tk.Frame(
+            parent,
+            bg=C.PANEL,
+            highlightthickness=1,
+            highlightbackground=C.BORDER
+        )
+        card.pack(fill="x", padx=20, pady=(0, 14))
+
+        tk.Label(
+            card,
+            text="SHAPE",
+            bg=C.PANEL,
+            fg=C.TEXT,
+            font=F(9, "bold")
+        ).pack(anchor="w", padx=14, pady=(12, 4))
+
+        tk.Label(
+            card,
+            text="Menentukan bentuk distribusi noise.",
+            bg=C.PANEL,
+            fg=C.MUTED,
+            font=F(8)
+        ).pack(anchor="w", padx=14)
+
+        tk.Scale(
+            card,
+            from_=1,
+            to=10,
+            resolution=1,
+            orient="horizontal",
+            variable=self.erlang_shape,
+            bg=C.PANEL,
+            fg=C.TEXT,
+            highlightthickness=0,
+            troughcolor=C.BORDER
+        ).pack(fill="x", padx=14)
+
+        tk.Label(
+            card,
+            text="SCALE",
+            bg=C.PANEL,
+            fg=C.TEXT,
+            font=F(9, "bold")
+        ).pack(anchor="w", padx=14, pady=(8, 4))
+
+        tk.Label(
+            card,
+            text="Mengatur tingkat penyebaran noise.",
+            bg=C.PANEL,
+            fg=C.MUTED,
+            font=F(8)
+        ).pack(anchor="w", padx=14)
+
+        tk.Scale(
+            card,
+            from_=1,
+            to=50,
+            resolution=1,
+            orient="horizontal",
+            variable=self.erlang_scale,
+            bg=C.PANEL,
+            fg=C.TEXT,
+            highlightthickness=0,
+            troughcolor=C.BORDER
+        ).pack(fill="x", padx=14, pady=(0, 12))
+
+    
+    def _build_exponential_noise_controls(self, parent):
+        self.exponential_scale = tk.DoubleVar(value=10)
+
+        card = tk.Frame(
+            parent,
+            bg=C.PANEL,
+            highlightthickness=1,
+            highlightbackground=C.BORDER
+        )
+        card.pack(fill="x", padx=20, pady=(0, 14))
+
+        tk.Label(
+            card,
+            text="SCALE",
+            bg=C.PANEL,
+            fg=C.TEXT,
+            font=F(9, "bold")
+        ).pack(anchor="w", padx=14, pady=(12, 4))
+
+        tk.Label(
+            card,
+            text="Mengatur tingkat penyebaran noise. "
+                "Semakin besar nilai scale, semakin kuat noise.",
+            bg=C.PANEL,
+            fg=C.MUTED,
+            font=F(8),
+            wraplength=280,
+            justify="left"
+        ).pack(anchor="w", padx=14)
+
+        tk.Scale(
+            card,
+            from_=1,
+            to=50,
+            resolution=1,
+            orient="horizontal",
+            variable=self.exponential_scale,
+            bg=C.PANEL,
+            fg=C.TEXT,
+            highlightthickness=0,
+            troughcolor=C.BORDER
+        ).pack(fill="x", padx=14, pady=(0, 12))
+
+    def _build_uniform_noise_controls(self, parent):
+        self.uniform_strength = tk.IntVar(value=20)
+
+        card = tk.Frame(
+            parent,
+            bg=C.PANEL,
+            highlightthickness=1,
+            highlightbackground=C.BORDER
+        )
+        card.pack(fill="x", padx=20, pady=(0, 14))
+
+        tk.Label(
+            card,
+            text="STRENGTH",
+            bg=C.PANEL,
+            fg=C.TEXT,
+            font=F(9, "bold")
+        ).pack(anchor="w", padx=14, pady=(12, 4))
+
+        tk.Label(
+            card,
+            text="Mengatur rentang intensitas noise. "
+                "Semakin besar nilai strength, semakin kuat noise.",
+            bg=C.PANEL,
+            fg=C.MUTED,
+            font=F(8),
+            wraplength=280,
+            justify="left"
+        ).pack(anchor="w", padx=14)
+
+        tk.Scale(
+            card,
+            from_=1,
+            to=100,
+            resolution=1,
+            orient="horizontal",
+            variable=self.uniform_strength,
+            bg=C.PANEL,
+            fg=C.TEXT,
+            highlightthickness=0,
+            troughcolor=C.BORDER
+        ).pack(fill="x", padx=14, pady=(0, 12))
+
+    def _build_impulse_noise_controls(self, parent):
+        self.impulse_amount = tk.IntVar(value=5)
+
+        card = tk.Frame(
+            parent,
+            bg=C.PANEL,
+            highlightthickness=1,
+            highlightbackground=C.BORDER
+        )
+        card.pack(fill="x", padx=20, pady=(0, 14))
+
+        tk.Label(
+            card,
+            text="NOISE AMOUNT",
+            bg=C.PANEL,
+            fg=C.TEXT,
+            font=F(9, "bold")
+        ).pack(anchor="w", padx=14, pady=(12, 4))
+
+        tk.Label(
+            card,
+            text="Mengatur persentase piksel yang terkena noise. "
+                "Nilai lebih tinggi menghasilkan lebih banyak titik hitam dan putih.",
+            bg=C.PANEL,
+            fg=C.MUTED,
+            font=F(8),
+            wraplength=280,
+            justify="left"
+        ).pack(anchor="w", padx=14)
+
+        tk.Scale(
+            card,
+            from_=1,
+            to=50,
+            resolution=1,
+            orient="horizontal",
+            variable=self.impulse_amount,
+            bg=C.PANEL,
+            fg=C.TEXT,
+            highlightthickness=0,
+            troughcolor=C.BORDER
+        ).pack(fill="x", padx=14, pady=(0, 12))
 
     def _choose_second_image(self):
         """Memilih citra kedua untuk Image Arithmetic."""
@@ -1543,9 +2367,7 @@ class PicLabApp(tk.Tk):
         except Exception as exc:
             messagebox.showerror("Gagal membuka citra kedua", str(exc))
 
-    # --------------------------------------------------------
     # OPERASI CITRA
-    # --------------------------------------------------------
     def upload_image(self):
         if not PIL_OK:
             messagebox.showerror(
@@ -1581,8 +2403,6 @@ class PicLabApp(tk.Tk):
             messagebox.showerror("Gagal membuka gambar", str(exc))
 
     def apply_operation(self):
-
-        # Binary dan Grayscale Gradient tidak membutuhkan gambar awal.
         no_image_required = (
             self.active_operation == "binary"
             or (
@@ -1880,6 +2700,174 @@ class PicLabApp(tk.Tk):
                 result = yuv_conversion(
                     self.current_image,
                     channel=self.yuv_channel.get()
+                )
+
+            elif self.active_operation == "brightness":
+                result = brightness_adjustment(
+                    self.current_image,
+                    value=self.brightness_value.get()
+                )
+
+            elif self.active_operation == "contrast":
+                result = contrast_adjustment(
+                    self.current_image,
+                    factor=self.contrast_factor.get()
+                )
+
+            elif self.active_operation == "histogram_equalization":
+                result = histogram_equalization(self.current_image)
+
+            
+            elif self.active_operation == "lowpass_filtering":
+                result = lowpass_filtering(
+                    self.current_image,
+                    kernel_size=self.lowpass_kernel.get()
+                )
+
+            elif self.active_operation == "median_filtering":
+                result = median_filtering(
+                    self.current_image,
+                    kernel_size=self.median_kernel.get()
+                )
+
+            elif self.active_operation == "ihpf":
+                result = ideal_highpass_filtering(
+                    self.current_image,
+                    cutoff=self.ihpf_cutoff.get()
+                )
+
+            elif self.active_operation == "bhpf":
+                result = butterworth_highpass_filtering(
+                    self.current_image,
+                    cutoff=self.bhpf_cutoff.get(),
+                    order=self.bhpf_order.get()
+                )
+
+            
+            elif self.active_operation == "geometric_correction":
+                try:
+                    values = self.geometric_correction_values
+
+                    points = [
+                        (
+                            float(values["tl_x"].get()),
+                            float(values["tl_y"].get())
+                        ),
+                        (
+                            float(values["tr_x"].get()),
+                            float(values["tr_y"].get())
+                        ),
+                        (
+                            float(values["br_x"].get()),
+                            float(values["br_y"].get())
+                        ),
+                        (
+                            float(values["bl_x"].get()),
+                            float(values["bl_y"].get())
+                        ),
+                    ]
+
+                except ValueError:
+                    messagebox.showwarning(
+                        "Parameter Tidak Valid",
+                        "Semua koordinat harus berupa angka."
+                    )
+                    return
+
+                for x, y in points:
+                    if not (0 <= x <= 100 and 0 <= y <= 100):
+                        messagebox.showwarning(
+                            "Koordinat Tidak Valid",
+                            "Semua koordinat harus berada antara 0–100%."
+                        )
+                        return
+
+                top_left, top_right, bottom_right, bottom_left = points
+
+                if not (
+                    top_left[0] < top_right[0]
+                    and bottom_left[0] < bottom_right[0]
+                    and top_left[1] < bottom_left[1]
+                    and top_right[1] < bottom_right[1]
+                ):
+                    messagebox.showwarning(
+                        "Koordinat Tidak Valid",
+                        "Periksa kembali posisi empat titik sudut."
+                    )
+                    return
+
+                result = geometric_correction(
+                    self.current_image,
+                    points=points
+                )
+
+            elif self.active_operation == "gaussian_noise":
+                result = gaussian_noise(
+                    self.current_image,
+                    mean=0,
+                    variance=self.gaussian_variance.get()
+                )
+
+            elif self.active_operation == "rayleigh_noise":
+                result = rayleigh_noise(
+                    self.current_image,
+                    scale=self.rayleigh_scale.get()
+                )
+
+            elif self.active_operation == "erlang_noise":
+                result = erlang_noise(
+                    self.current_image,
+                    shape=self.erlang_shape.get(),
+                    scale=self.erlang_scale.get()
+                )
+
+            elif self.active_operation == "exponential_noise":
+                result = exponential_noise(
+                    self.current_image,
+                    scale=self.exponential_scale.get()
+                )
+
+            elif self.active_operation == "uniform_noise":
+                result = uniform_noise(
+                    self.current_image,
+                    strength=self.uniform_strength.get()
+                )
+
+            elif self.active_operation == "impulse_noise":
+                result = impulse_noise(
+                    self.current_image,
+                    amount=self.impulse_amount.get() / 100,
+                    salt_vs_pepper=0.5
+                )
+
+            elif self.active_operation == "sobel":
+                result = sobel_edge_detection(
+                    self.current_image
+                )
+
+            elif self.active_operation == "prewitt":
+                result = prewitt_edge_detection(
+                    self.current_image
+                )
+
+            elif self.active_operation == "robert":
+                result = robert_edge_detection(
+                    self.current_image
+                )
+
+            elif self.active_operation == "laplacian":
+                result = laplacian_edge_detection(
+                    self.current_image
+                )
+
+            elif self.active_operation == "log":
+                result = log_edge_detection(
+                    self.current_image
+                )
+
+            elif self.active_operation == "canny":
+                result = canny_edge_detection(
+                    self.current_image
                 )
 
             else:
