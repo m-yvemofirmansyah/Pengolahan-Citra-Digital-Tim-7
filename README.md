@@ -94,7 +94,6 @@ Kategori untuk pengembangan operasi segmentasi citra digital.
 Berisi informasi mengenai aplikasi dan tim pengembang, termasuk:
 - Informasi Tim Developer.
 - GitHub.
-- YouTube.
 
 ## Struktur Proyek
 
@@ -121,7 +120,7 @@ Keterangan:
 ### 1. Clone Repository
 
 ```bash
-git clone <URL-REPOSITORY>
+git clone https://github.com/m-yvemofirmansyah/Pengolahan-Citra-Digital-Tim-7.git
 ```
 
 ### 2. Masuk ke Direktori Proyek
